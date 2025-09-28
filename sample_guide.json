@@ -1,0 +1,15 @@
+{
+  "title": "Sample Task Guide",
+  "steps": [
+    "Welcome to VTask Tracker!",
+    "This is a sample guide to demonstrate the functionality",
+    "You can create your own custom templates using the 'New Template' button",
+    "Use Shift+D to go to the next step",
+    "Use Shift+S to go to the previous step",
+    "Use Shift+Q to quit the application",
+    "Load existing templates with the 'Load Template' button",
+    "Save your current template with the 'Save Template' button",
+    "Perfect for speedruns, tutorials, checklists, and more!",
+    "Enjoy using VTask Tracker!"
+  ]
+}
