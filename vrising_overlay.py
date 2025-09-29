@@ -29,6 +29,13 @@ class VTaskTracker:
         # Window state tracking
         self.is_minimized = False
         
+        # Drag functionality variables
+        self.drag_start_x = 0
+        self.drag_start_y = 0
+        self.drag_window_x = 0
+        self.drag_window_y = 0
+        self.is_dragging = False
+        
         self.setup_ui()
         self.setup_keyboard_listener()
         self.load_guide()
@@ -146,6 +153,16 @@ class VTaskTracker:
             bg='black'
         )
         self.controls_label.pack(side=tk.BOTTOM)
+        
+        # Bind mouse events for window dragging
+        main_frame.bind("<Button-1>", self.start_drag)
+        main_frame.bind("<B1-Motion>", self.drag_window)
+        main_frame.bind("<ButtonRelease-1>", self.stop_drag)
+        
+        # Also bind to the title label for easier dragging
+        title_label.bind("<Button-1>", self.start_drag)
+        title_label.bind("<B1-Motion>", self.drag_window)
+        title_label.bind("<ButtonRelease-1>", self.stop_drag)
         
     def setup_keyboard_listener(self):
         """Set up global keyboard listener for navigation"""
@@ -690,6 +707,30 @@ class VTaskTracker:
         """Clean up resources"""
         if hasattr(self, 'listener'):
             self.listener.stop()
+    
+    def start_drag(self, event):
+        """Start dragging the window"""
+        self.is_dragging = True
+        self.drag_start_x = event.x_root
+        self.drag_start_y = event.y_root
+        self.drag_window_x = self.root.winfo_x()
+        self.drag_window_y = self.root.winfo_y()
+    
+    def drag_window(self, event):
+        """Handle window dragging"""
+        if self.is_dragging:
+            # Calculate new window position
+            delta_x = event.x_root - self.drag_start_x
+            delta_y = event.y_root - self.drag_start_y
+            new_x = self.drag_window_x + delta_x
+            new_y = self.drag_window_y + delta_y
+            
+            # Update window position
+            self.root.geometry(f"+{new_x}+{new_y}")
+    
+    def stop_drag(self, event):
+        """Stop dragging the window"""
+        self.is_dragging = False
 
 if __name__ == "__main__":
     tracker = VTaskTracker()
