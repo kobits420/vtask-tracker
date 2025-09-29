@@ -15,6 +15,20 @@ class VTaskTracker:
         self.pressed_keys = set()
         self.last_action_time = 0
         self.current_template = "sample_guide.json"
+        
+        # Keybind configuration
+        self.keybind_config_file = "keybind_config.json"
+        self.default_keybinds = {
+            "next_step": {"modifiers": ["shift"], "key": "d"},
+            "previous_step": {"modifiers": ["shift"], "key": "s"},
+            "quit_app": {"modifiers": ["shift"], "key": "q"},
+            "minimize_toggle": {"modifiers": ["shift"], "key": "r"}
+        }
+        self.keybinds = self.load_keybind_config()
+        
+        # Window state tracking
+        self.is_minimized = False
+        
         self.setup_ui()
         self.setup_keyboard_listener()
         self.load_guide()
@@ -111,15 +125,27 @@ class VTaskTracker:
         )
         save_template_btn.pack(side=tk.LEFT, padx=2)
         
+        # Settings button
+        settings_btn = tk.Button(
+            button_frame,
+            text="Settings",
+            command=self.open_settings,
+            font=('Arial', 8),
+            bg='purple',
+            fg='white',
+            width=10
+        )
+        settings_btn.pack(side=tk.LEFT, padx=2)
+        
         # Controls info
-        controls_label = tk.Label(
+        self.controls_label = tk.Label(
             main_frame,
-            text="Shift+D: Next | Shift+S: Previous | Shift+Q: Quit",
+            text=self.get_controls_text(),
             font=('Arial', 8),
             fg='gray',
             bg='black'
         )
-        controls_label.pack(side=tk.BOTTOM)
+        self.controls_label.pack(side=tk.BOTTOM)
         
     def setup_keyboard_listener(self):
         """Set up global keyboard listener for navigation"""
@@ -131,41 +157,37 @@ class VTaskTracker:
                 if current_time - self.last_action_time < 0.2:
                     return
                 
-                # Track shift key
+                # Track modifier keys
                 if key == keyboard.Key.shift:
                     self.pressed_keys.add('shift')
                     return
+                elif key == keyboard.Key.ctrl:
+                    self.pressed_keys.add('ctrl')
+                    return
+                elif key == keyboard.Key.alt:
+                    self.pressed_keys.add('alt')
+                    return
                 
-                # Check for letter keys with shift
+                # Check for configured keybinds
                 if hasattr(key, 'char') and key.char:
                     char = key.char.lower()
-                    
-                    # Check for Shift+D combination (next step)
-                    if char == 'd' and 'shift' in self.pressed_keys:
-                        self.next_step()
-                        self.last_action_time = current_time
-                        return
-                        
-                    # Check for Shift+S combination (previous step)
-                    elif char == 's' and 'shift' in self.pressed_keys:
-                        self.previous_step()
-                        self.last_action_time = current_time
-                        return
-                        
-                    # Check for Shift+Q combination (quit)
-                    elif char == 'q' and 'shift' in self.pressed_keys:
-                        self.quit_application()
-                        self.last_action_time = current_time
-                        return
+                    self.check_keybind(char)
+                elif hasattr(key, 'name'):
+                    # Handle special keys like F1-F12, etc.
+                    self.check_keybind(key.name.lower())
                     
             except (AttributeError, TypeError):
                 pass
                 
         def on_key_release(key):
             try:
-                # Remove shift from pressed keys when released
+                # Remove modifier keys from pressed keys when released
                 if key == keyboard.Key.shift:
                     self.pressed_keys.discard('shift')
+                elif key == keyboard.Key.ctrl:
+                    self.pressed_keys.discard('ctrl')
+                elif key == keyboard.Key.alt:
+                    self.pressed_keys.discard('alt')
             except (AttributeError, TypeError):
                 pass
         
@@ -175,6 +197,291 @@ class VTaskTracker:
             on_release=on_key_release
         )
         self.listener.start()
+    
+    def restart_keyboard_listener(self):
+        """Restart the keyboard listener with updated keybinds"""
+        if hasattr(self, 'listener'):
+            self.listener.stop()
+        self.setup_keyboard_listener()
+    
+    def load_keybind_config(self):
+        """Load keybind configuration from file or use defaults"""
+        if os.path.exists(self.keybind_config_file):
+            try:
+                with open(self.keybind_config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    # Merge with defaults to ensure all keys are present
+                    keybinds = self.default_keybinds.copy()
+                    keybinds.update(config)
+                    return keybinds
+            except Exception as e:
+                print(f"Error loading keybind config: {e}")
+                return self.default_keybinds.copy()
+        else:
+            return self.default_keybinds.copy()
+    
+    def save_keybind_config(self):
+        """Save current keybind configuration to file"""
+        try:
+            with open(self.keybind_config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.keybinds, f, indent=2)
+        except Exception as e:
+            print(f"Error saving keybind config: {e}")
+    
+    def check_keybind(self, pressed_key):
+        """Check if the pressed key combination matches any configured keybind"""
+        current_time = time.time()
+        
+        for action, config in self.keybinds.items():
+            required_modifiers = set(config.get('modifiers', []))
+            required_key = config.get('key', '')
+            
+            # Debug print (can be removed later)
+            # print(f"Checking {action}: required_modifiers={required_modifiers}, required_key={required_key}")
+            # print(f"Current: pressed_keys={self.pressed_keys}, pressed_key={pressed_key}")
+            
+            # Check if modifiers match
+            if required_modifiers == self.pressed_keys and required_key == pressed_key:
+                # print(f"Keybind match found for {action}")
+                if action == 'next_step':
+                    self.next_step()
+                    self.last_action_time = current_time
+                elif action == 'previous_step':
+                    self.previous_step()
+                    self.last_action_time = current_time
+                elif action == 'quit_app':
+                    self.quit_application()
+                    self.last_action_time = current_time
+                elif action == 'minimize_toggle':
+                    self.toggle_minimize()
+                    self.last_action_time = current_time
+                break
+    
+    def get_controls_text(self):
+        """Generate controls text based on current keybind configuration"""
+        next_key = self.format_keybind(self.keybinds['next_step'])
+        prev_key = self.format_keybind(self.keybinds['previous_step'])
+        quit_key = self.format_keybind(self.keybinds['quit_app'])
+        minimize_key = self.format_keybind(self.keybinds['minimize_toggle'])
+        return f"{next_key}: Next | {prev_key}: Previous | {minimize_key}: Min/Max | {quit_key}: Quit"
+    
+    def format_keybind(self, keybind_config):
+        """Format a keybind configuration for display"""
+        modifiers = keybind_config.get('modifiers', [])
+        key = keybind_config.get('key', '')
+        
+        modifier_text = '+'.join([mod.capitalize() for mod in modifiers])
+        if modifier_text:
+            return f"{modifier_text}+{key.upper()}"
+        else:
+            return key.upper()
+    
+    def open_settings(self):
+        """Open the settings window for keybind customization"""
+        settings_window = tk.Toplevel(self.root)
+        settings_window.title("Settings - Keybind Configuration")
+        settings_window.geometry("500x400")
+        settings_window.configure(bg='black')
+        settings_window.attributes('-topmost', True)
+        
+        # Center the window
+        settings_window.transient(self.root)
+        settings_window.grab_set()
+        
+        # Title
+        title_label = tk.Label(
+            settings_window,
+            text="Keybind Configuration",
+            font=('Arial', 14, 'bold'),
+            fg='white',
+            bg='black'
+        )
+        title_label.pack(pady=10)
+        
+        # Keybind configuration frame
+        config_frame = tk.Frame(settings_window, bg='black')
+        config_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Create keybind configuration widgets
+        self.keybind_widgets = {}
+        keybind_actions = [
+            ("next_step", "Next Step"),
+            ("previous_step", "Previous Step"),
+            ("minimize_toggle", "Minimize/Maximize"),
+            ("quit_app", "Quit Application")
+        ]
+        
+        for action, label in keybind_actions:
+            self.create_keybind_widget(config_frame, action, label)
+        
+        # Buttons frame
+        button_frame = tk.Frame(settings_window, bg='black')
+        button_frame.pack(pady=20)
+        
+        def save_settings():
+            # Validate and save keybinds
+            if self.validate_keybinds():
+                self.save_keybind_config()
+                # Restart keyboard listener with new keybinds
+                self.restart_keyboard_listener()
+                # Update controls display
+                self.controls_label.config(text=self.get_controls_text())
+                messagebox.showinfo("Success", "Keybind settings saved successfully!")
+                settings_window.destroy()
+            else:
+                messagebox.showerror("Error", "Invalid keybind configuration. Please check for conflicts.")
+        
+        def reset_defaults():
+            self.keybinds = self.default_keybinds.copy()
+            self.update_keybind_widgets()
+            messagebox.showinfo("Reset", "Keybinds reset to defaults")
+        
+        def cancel_settings():
+            settings_window.destroy()
+        
+        tk.Button(button_frame, text="Save", command=save_settings,
+                 bg='darkgreen', fg='white', font=('Arial', 10)).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Reset Defaults", command=reset_defaults,
+                 bg='darkorange', fg='white', font=('Arial', 10)).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Cancel", command=cancel_settings,
+                 bg='darkred', fg='white', font=('Arial', 10)).pack(side=tk.LEFT, padx=5)
+    
+    def create_keybind_widget(self, parent, action, label):
+        """Create a keybind configuration widget"""
+        frame = tk.Frame(parent, bg='black')
+        frame.pack(fill=tk.X, pady=5)
+        
+        # Label
+        tk.Label(frame, text=f"{label}:", font=('Arial', 10), fg='white', bg='black').pack(side=tk.LEFT)
+        
+        # Modifiers frame
+        modifiers_frame = tk.Frame(frame, bg='black')
+        modifiers_frame.pack(side=tk.LEFT, padx=10)
+        
+        # Modifier radio buttons (only one can be selected)
+        modifier_var = tk.StringVar(value=self.get_current_modifier(action))
+        modifier_vars = {'modifier': modifier_var}
+        
+        # No modifier option
+        rb_none = tk.Radiobutton(
+            modifiers_frame,
+            text="None",
+            variable=modifier_var,
+            value="none",
+            font=('Arial', 9),
+            fg='white',
+            bg='black',
+            selectcolor='darkgray',
+            activebackground='black',
+            activeforeground='white'
+        )
+        rb_none.pack(side=tk.LEFT, padx=2)
+        
+        # Modifier options
+        for modifier in ['shift', 'ctrl', 'alt']:
+            rb = tk.Radiobutton(
+                modifiers_frame,
+                text=modifier.capitalize(),
+                variable=modifier_var,
+                value=modifier,
+                font=('Arial', 9),
+                fg='white',
+                bg='black',
+                selectcolor='darkgray',
+                activebackground='black',
+                activeforeground='white'
+            )
+            rb.pack(side=tk.LEFT, padx=2)
+        
+        # Key entry
+        key_var = tk.StringVar(value=self.keybinds[action].get('key', ''))
+        key_entry = tk.Entry(
+            modifiers_frame,
+            textvariable=key_var,
+            font=('Arial', 9),
+            width=5,
+            bg='darkgray',
+            fg='black'
+        )
+        key_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Store widgets for later access
+        self.keybind_widgets[action] = {
+            'modifiers': modifier_vars,
+            'key': key_var
+        }
+    
+    def get_current_modifier(self, action):
+        """Get the current modifier for an action (returns first modifier or 'none')"""
+        modifiers = self.keybinds[action].get('modifiers', [])
+        if modifiers:
+            return modifiers[0]  # Return first modifier only
+        return "none"
+    
+    def update_keybind_widgets(self):
+        """Update keybind widgets with current configuration"""
+        for action, widgets in self.keybind_widgets.items():
+            config = self.keybinds[action]
+            key = config.get('key', '')
+            
+            # Update modifier radio button
+            current_modifier = self.get_current_modifier(action)
+            widgets['modifiers']['modifier'].set(current_modifier)
+            
+            # Update key entry
+            widgets['key'].set(key)
+    
+    def validate_keybinds(self):
+        """Validate keybind configuration and update internal state"""
+        new_keybinds = {}
+        
+        for action, widgets in self.keybind_widgets.items():
+            # Get selected modifier (only one allowed now)
+            selected_modifier = widgets['modifiers']['modifier'].get()
+            modifiers = []
+            if selected_modifier != "none":
+                modifiers = [selected_modifier]
+            
+            # Get key
+            key = widgets['key'].get().strip().lower()
+            
+            if not key:
+                messagebox.showerror("Error", f"Please specify a key for {action}")
+                return False
+            
+            new_keybinds[action] = {
+                'modifiers': modifiers,
+                'key': key
+            }
+        
+        # Check for conflicts
+        keybind_strings = []
+        for action, config in new_keybinds.items():
+            if config['modifiers']:
+                keybind_str = f"{'+'.join(config['modifiers'])}+{config['key']}"
+            else:
+                keybind_str = config['key']
+            
+            if keybind_str in keybind_strings:
+                messagebox.showerror("Error", f"Duplicate keybind detected: {keybind_str}")
+                return False
+            keybind_strings.append(keybind_str)
+        
+        # Update internal keybinds
+        self.keybinds = new_keybinds
+        return True
+    
+    def toggle_minimize(self):
+        """Toggle between minimized and maximized state"""
+        if self.is_minimized:
+            # Restore the window
+            self.root.deiconify()
+            self.root.attributes('-alpha', 0.9)
+            self.is_minimized = False
+        else:
+            # Minimize the window (make it invisible but keep it running)
+            self.root.withdraw()
+            self.is_minimized = True
         
     def create_new_template(self):
         """Create a new custom template"""

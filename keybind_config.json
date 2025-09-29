@@ -1,0 +1,26 @@
+{
+  "next_step": {
+    "modifiers": [
+      "shift"
+    ],
+    "key": "d"
+  },
+  "previous_step": {
+    "modifiers": [
+      "shift"
+    ],
+    "key": "s"
+  },
+  "minimize_toggle": {
+    "modifiers": [
+      "shift"
+    ],
+    "key": "v"
+  },
+  "quit_app": {
+    "modifiers": [
+      "shift"
+    ],
+    "key": "q"
+  }
+}

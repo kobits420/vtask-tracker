@@ -6,10 +6,11 @@ A transparent overlay application that displays step-by-step task guides with ke
 
 - **Always-on-top transparent overlay** - Stays visible over any application
 - **Step-by-step guide display** - Navigate through your tasks one at a time
-- **Keyboard navigation**:
-  - `Shift + D`: Next step
-  - `Shift + S`: Previous step
-  - `Shift + Q`: Quit application
+- **Customizable keyboard navigation**:
+  - Default: `Shift + D`: Next step, `Shift + S`: Previous step, `Shift + R`: Minimize/Maximize, `Shift + Q`: Quit application
+  - Fully customizable keybinds with modifier support (Shift, Ctrl, Alt)
+  - Settings window for easy keybind configuration
+  - Minimize/maximize functionality to hide/show overlay as needed
 - **Template management**:
   - Create custom templates with the built-in editor
   - Load existing templates from JSON files
@@ -52,6 +53,32 @@ A transparent overlay application that displays step-by-step task guides with ke
 2. Choose where to save the file
 3. Your current template will be exported
 
+## Keybind Customization
+
+### Accessing Settings
+1. Click the **"Settings"** button in the main overlay
+2. The keybind configuration window will open
+
+### Configuring Keybinds
+1. For each action (Next Step, Previous Step, Minimize/Maximize, Quit Application):
+   - Select one modifier key (None, Shift, Ctrl, Alt) using radio buttons
+   - Enter the desired key in the text field
+2. Click **"Save"** to apply changes
+3. Click **"Reset Defaults"** to restore original keybinds
+4. Click **"Cancel"** to discard changes
+
+### Keybind Examples
+- `Ctrl + N`: Next step
+- `Ctrl + P`: Previous step  
+- `F1`: Minimize/Maximize (no modifiers)
+- `Alt + F4`: Quit application
+- `F2`: Next step (no modifiers)
+
+### Keybind Validation
+- The system prevents duplicate keybind assignments
+- All actions must have a key assigned
+- Settings are automatically saved to `keybind_config.json`
+
 ## Template Format
 
 Templates use a simple JSON format:
@@ -69,10 +96,18 @@ Templates use a simple JSON format:
 
 ## Controls
 
+### Default Keybinds
 - `Shift + D`: Next step
 - `Shift + S`: Previous step
+- `Shift + R`: Minimize/Maximize overlay
 - `Shift + Q`: Quit application
-- The overlay works globally, even when other applications are in focus
+
+### Customization
+- All keybinds can be customized through the Settings window
+- Supports Shift, Ctrl, and Alt modifiers (one at a time)
+- Works globally, even when other applications are in focus
+- Settings are saved automatically and persist between sessions
+- Minimize functionality allows you to hide the overlay when not needed
 
 ## Use Cases
 

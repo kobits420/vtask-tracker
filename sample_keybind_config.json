@@ -1,0 +1,14 @@
+{
+  "next_step": {
+    "modifiers": ["ctrl"],
+    "key": "n"
+  },
+  "previous_step": {
+    "modifiers": ["ctrl"],
+    "key": "p"
+  },
+  "quit_app": {
+    "modifiers": ["alt"],
+    "key": "f4"
+  }
+}
